@@ -20,14 +20,16 @@ public class Handshake extends DefinedPacket
     private int port;
     private int requestedProtocol;
 
+
     @Override
     public void read(ByteBuf buf)
     {
         protocolVersion = readVarInt( buf );
-        host = readString( buf, 255 );
+        host = readString( buf );
         port = buf.readUnsignedShort();
         requestedProtocol = readVarInt( buf );
     }
+
 
     @Override
     public void write(ByteBuf buf)
