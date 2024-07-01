@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -56,6 +57,7 @@ import net.md_5.bungee.netty.cipher.CipherEncoder;
 import net.md_5.bungee.protocol.DefinedPacket;
 import net.md_5.bungee.protocol.PacketWrapper;
 import net.md_5.bungee.protocol.PlayerPublicKey;
+import net.md_5.bungee.protocol.Property;
 import net.md_5.bungee.protocol.Protocol;
 import net.md_5.bungee.protocol.ProtocolConstants;
 import net.md_5.bungee.protocol.packet.CookieRequest;
@@ -350,7 +352,26 @@ public class InitialHandler extends PacketHandler implements PendingConnection
         {
             String[] split = handshake.getHost().split( "\0", 2 );
             handshake.setHost( split[0] );
-            extraDataInHandshake = "\0" + split[1];
+
+            if ( split.length > 1 )
+            {
+                String[] ipForwardedData = split[1].split( "\00", 4 );
+                String originalIP = ipForwardedData[0];
+                String playerUniqueId = ipForwardedData[1];
+                String playerSkin = ipForwardedData[2].replace( "[", "" ).replace( "]", "" );
+
+                this.setUniqueId( UUID.fromString( playerUniqueId.substring( 0, 8 ) + "-" + playerUniqueId.substring( 8, 12 ) + "-" + playerUniqueId.substring( 12, 16 ) + "-" + playerUniqueId.substring( 16, 20 ) + "-" + playerUniqueId.substring( 20, 32 ) ) );
+
+                loginProfile = new LoginResult( playerUniqueId, name, new Property[]{BungeeCord.getInstance().gson.fromJson( playerSkin, Property.class ) } );
+
+                ch.setRemoteAddress( new InetSocketAddress( originalIP, handshake.getPort() ) );
+
+                //extraDataInHandshake = "\0" + ipForwardedData[3];
+            } else
+            {
+                extraDataInHandshake = "\0" + split[1];
+            }
+
         }
 
         // SRV records can end with a . depending on DNS / client.
@@ -798,7 +819,7 @@ public class InitialHandler extends PacketHandler implements PendingConnection
     @Override
     public void setUniqueId(UUID uuid)
     {
-        Preconditions.checkState( thisState == State.USERNAME, "Can only set uuid while state is username" );
+        // Preconditions.checkState( thisState == State.USERNAME, "Can only set uuid while state is username" );
         Preconditions.checkState( !onlineMode, "Can only set uuid when online mode is false" );
         this.uniqueId = uuid;
     }
