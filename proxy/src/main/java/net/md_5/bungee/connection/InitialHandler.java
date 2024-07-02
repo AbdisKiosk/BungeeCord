@@ -1,6 +1,7 @@
 package net.md_5.bungee.connection;
 
 import com.google.common.base.Preconditions;
+import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
 import java.math.BigInteger;
 import java.net.InetSocketAddress;
@@ -357,15 +358,15 @@ public class InitialHandler extends PacketHandler implements PendingConnection
                 String[] ipForwardedData = split[1].split( "\00", 4 );
                 String originalIP = ipForwardedData[0];
                 String playerUniqueId = ipForwardedData[1];
-                String playerSkin = ipForwardedData[2].replace( "[", "" ).replace( "]", "" );
+                String playerSkin = ipForwardedData[2];
 
                 this.setUniqueId( UUID.fromString( playerUniqueId.substring( 0, 8 ) + "-" + playerUniqueId.substring( 8, 12 ) + "-" + playerUniqueId.substring( 12, 16 ) + "-" + playerUniqueId.substring( 16, 20 ) + "-" + playerUniqueId.substring( 20, 32 ) ) );
 
-                loginProfile = new LoginResult( playerUniqueId, name, new Property[]{BungeeCord.getInstance().gson.fromJson( playerSkin, Property.class ) } );
+                TypeToken<Property[]> propertiesType = new TypeToken<Property[]>()
+                { };
+                loginProfile = new LoginResult( playerUniqueId, name, BungeeCord.getInstance().gson.fromJson( playerSkin, propertiesType.getType() ) );
 
                 ch.setRemoteAddress( new InetSocketAddress( originalIP, handshake.getPort() ) );
-
-                //extraDataInHandshake = "\0" + ipForwardedData[3];
             } else
             {
                 extraDataInHandshake = "\0" + split[1];
